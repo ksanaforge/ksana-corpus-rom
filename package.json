@@ -1,0 +1,24 @@
+{
+  "name": "ksana-jsonrom",
+  "version": "1.7.2",
+  "description": "romable json file format",
+  "scripts": {
+    "test": "node test/test.js"
+  },
+  "inject-js-start": "nwmain.js",
+  "repository": {
+    "type": "git",
+    "url": "https://yapcheahshen@github.com/ksanaforge/ksana-jsonrom"
+  },
+  "keywords": [
+    "json",
+    "read",
+    "only"
+  ],
+  "author": "yapcheahshen@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ksanaforge/ksana-jsonrom/issues"
+  },
+  "homepage": "https://github.com/ksanaforge/ksana-jsonrom"
+}
