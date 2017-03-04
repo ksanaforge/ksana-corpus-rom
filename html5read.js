@@ -40,6 +40,14 @@ var _openLocal=function(file,cb) {
 	handle.file=file;
 	cb(handle);
 }
+var _openBlobURL=function(bloburl,cb){
+	var handle={};
+	handle.url=bloburl.replace(/#.*/,"");
+	const m=bloburl.match(/#(.+)\*(\d+)/);
+	handle.fn=m[1];
+	handle.blobsize=parseInt(m[2]);
+	cb(handle);	
+}
 var _openXHR=function(file,cb) {
 	var handle={};
 	handle.url=file;
@@ -66,7 +74,11 @@ var open=function(fn_url,cb) {
 		return;
 	}
 
-	if (fn_url.indexOf("http")>-1){//
+	if (fn_url.indexOf("blob:")==0) {
+		_openBlobURL.call(this,fn_url,cb);
+		return;
+	}
+	if (fn_url.indexOf("http")==0){//
 		_openXHR.call(this,fn_url,cb);
 		return;
 	}

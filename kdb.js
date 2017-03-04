@@ -78,7 +78,6 @@ var Create=function(path,opts,cb) {
 		}
 		var that=this;
 		
-
 		var kfs=new Kfs(path,opts,function(err){
 			if (err) {
 				setTimeout(function(){

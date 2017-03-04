@@ -63,12 +63,13 @@ var Open=function(path,opts,cb) {
 			} else if (window && window.location.protocol.indexOf("http")>-1) {
 				var slash=window.location.href.lastIndexOf("/");
 				var approot=window.location.href.substr(0,slash+1);
-				if (typeof path=="string"&& path.indexOf("/")>-1){
-					approot=window.location.origin+"/";
+				if (typeof path=="string" &&path.substr(0,5)!=="blob:"){
+					if (path.indexOf("/")>-1){
+						approot=window.location.origin+"/";
+					}
+					if (path.indexOf("http")==-1) path=approot+path;						
 				}
-				if (typeof path=="string"&&path.indexOf("http")==-1) path=approot+path;
 			}
-
 			fs.open(path,function(h){
 				if (!h) {
 					cb("file not found:"+path);	
@@ -118,6 +119,10 @@ var Open=function(path,opts,cb) {
 						cb.call(this);
 					}.bind(this),0);
 				}.bind(this))
+			} else if (this.handle.blobsize) {
+				this.read=fs.xhr_read;
+				this.size=this.handle.blobsize
+				cb.call(this);
 			} else if (fs&& fs.fs && fs.fs.root) {
 				if (path.indexOf("filesystem:")==0) fn=path.substr(path.lastIndexOf("/"));
 				//Google File system
