@@ -78,7 +78,11 @@ var xhr_read=function(handle,nop1,nop2,length,position,cb){
 
 var read=function(handle,buffer,offset,length,position,cb) {//buffer and offset is not used
 	var xhr = new XMLHttpRequest();
-	xhr.open('GET', handle.url+"?"+(new Date().getTime()), true);
+	var url=handle.url;
+	if (url.indexOf("blob:")==-1){
+		url+="?"+(new Date().getTime())
+	}
+	xhr.open('GET', url, true);
 	var range=[position,length+position-1];
 	if (range[1]+1>handle.filesize) range[1]=handle.filesize-1;
 	xhr.setRequestHeader('Range', 'bytes='+range[0]+'-'+range[1]);

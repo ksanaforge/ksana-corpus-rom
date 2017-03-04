@@ -55,6 +55,101 @@ var unpack_int = function (ar, count , reset) {
 }
 var Open=function(path,opts,cb) {
 	opts=opts||{};
+	var that=this;
+	var main=function(){
+		if (html5fs) {
+			if (opts.webStorage){
+				//local storage
+			} else if (window && window.location.protocol.indexOf("http")>-1) {
+				var slash=window.location.href.lastIndexOf("/");
+				var approot=window.location.href.substr(0,slash+1);
+				if (typeof path=="string"&& path.indexOf("/")>-1){
+					approot=window.location.origin+"/";
+				}
+				if (typeof path=="string"&&path.indexOf("http")==-1) path=approot+path;
+			}
+
+			fs.open(path,function(h){
+				if (!h) {
+					cb("file not found:"+path);	
+					return;
+				} else {
+					that.handle=h;
+					that.html5fs=true;
+					setupapi.call(that);
+					that.opened=true;				
+				}
+			})
+		} else {
+			if (fs.existsSync && fs.existsSync(path)){
+				this.handle=fs.openSync(path,'r');//,function(err,handle){
+				this.opened=true;
+				setupapi.call(this);
+		  } else  {
+				cb("file not found:"+path);	
+				return null;
+			}
+		}
+		return this;
+	}
+	var setupapi=function() {
+		var that=this;
+		this.readSignature=readSignature;
+		this.readI32=readI32;
+		this.readUI32=readUI32;
+		this.readUI8=readUI8;
+		this.readBuf=readBuf;
+		this.readBuf_packedint=readBuf_packedint;
+		this.readFixedArray=readFixedArray;
+		this.readString=readString;
+		this.readStringArray=readStringArray;
+		this.signature_size=signature_size;
+		this.free=free;
+		this.read=fs.read;
+
+		if (html5fs) {
+			var fn=path;
+			if (this.handle.file) {
+				//local file open by html5 input file
+				fs.getFileSize(this.handle.file,function(size){
+					this.size=size;
+					this.read=fs.xhr_read;
+					if (cb) setTimeout(function(){
+						cb.call(this);
+					}.bind(this),0);
+				}.bind(this))
+			} else if (fs&& fs.fs && fs.fs.root) {
+				if (path.indexOf("filesystem:")==0) fn=path.substr(path.lastIndexOf("/"));
+				//Google File system
+				fs.fs.root.getFile(fn,{},function(entry){
+				  entry.getMetadata(function(metadata) { 
+					that.size=metadata.size;
+					if (cb) setTimeout(function(){
+						cb.call(that);
+					}.bind(that),0);
+					});
+				});				
+			} else if (this.handle.url) {//use XHR
+				fs.xhr_getFileSize(this.handle.url,function(err,size){
+					if (err) {
+						cb&&cb.call(that,"cannot open file");
+					} else {
+						that.size=size;
+						that.read=fs.xhr_read;
+						that.handle.filesize=size;//for xhr_read
+						cb&& setTimeout(cb.bind(that),0);
+					}
+				})
+			}
+		} else {
+			var stat=fs.fstatSync(this.handle);
+			this.stat=stat;
+			this.size=stat.size;		
+			if (cb)	setTimeout(cb.bind(this,0),0);	
+		}
+	}
+
+
 
 	var readSignature=function(pos,cb) {
 		var buf=(Buffer.alloc)?Buffer.alloc(signature_size):new Buffer(signature_size);
@@ -303,91 +398,8 @@ var Open=function(path,opts,cb) {
 		//console.log('closing ',handle);
 		fs.closeSync(this.handle);
 	}
-	var setupapi=function() {
-		var that=this;
-		this.readSignature=readSignature;
-		this.readI32=readI32;
-		this.readUI32=readUI32;
-		this.readUI8=readUI8;
-		this.readBuf=readBuf;
-		this.readBuf_packedint=readBuf_packedint;
-		this.readFixedArray=readFixedArray;
-		this.readString=readString;
-		this.readStringArray=readStringArray;
-		this.signature_size=signature_size;
-		this.free=free;
-		this.read=fs.read;
 
-		if (html5fs) {
-			var fn=path;
-			if (this.handle.file) {
-				//local file
-				fs.getFileSize(this.handle.file,function(size){
-					that.size=size;
-					if (cb) setTimeout(cb.bind(that),0);
-				})
-			} else if (fs&& fs.fs && fs.fs.root) {
-				if (path.indexOf("filesystem:")==0) fn=path.substr(path.lastIndexOf("/"));
-				//Google File system
-				fs.fs.root.getFile(fn,{},function(entry){
-				  entry.getMetadata(function(metadata) { 
-					that.size=metadata.size;
-					if (cb) setTimeout(cb.bind(that),0);
-					});
-				});				
-			} else if (this.handle.url) {//use XHR
-				fs.xhr_getFileSize(this.handle.url,function(err,size){
-					if (err) {
-						cb&&cb.call(that,"cannot open file");
-					} else {
-						that.size=size;
-						that.read=fs.xhr_read;
-						that.handle.filesize=size;//for xhr_read
-						cb&& setTimeout(cb.bind(that),0);
-					}
-				})
-			}
-		} else {
-			var stat=fs.fstatSync(this.handle);
-			this.stat=stat;
-			this.size=stat.size;		
-			if (cb)	setTimeout(cb.bind(this,0),0);	
-		}
-	}
+	return main();
 
-	var that=this;
-	if (html5fs) {
-		if (opts.webStorage){
-			//local storage
-		} else if (window && window.location.protocol.indexOf("http")>-1) {
-			var slash=window.location.href.lastIndexOf("/");
-			var approot=window.location.href.substr(0,slash+1);
-			if (path.indexOf("/")>-1){
-				approot=window.location.origin+"/";
-			}
-			path=approot+path;	
-		}
-		fs.open(path,function(h){
-			if (!h) {
-				cb("file not found:"+path);	
-				return;
-			} else {
-				that.handle=h;
-				that.html5fs=true;
-				setupapi.call(that);
-				that.opened=true;				
-			}
-		})
-	} else {
-		if (fs.existsSync && fs.existsSync(path)){
-			this.handle=fs.openSync(path,'r');//,function(err,handle){
-			this.opened=true;
-			setupapi.call(this);
-	  } else  {
-			cb("file not found:"+path);	
-			return null;
-		}
-	}
-	return this;
 }
 module.exports=Open;

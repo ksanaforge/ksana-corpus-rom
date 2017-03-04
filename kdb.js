@@ -67,11 +67,35 @@ var strsep="\uffff";
 var Create=function(path,opts,cb) {
 	/* loadxxx functions move file pointer */
 	// load variable length int
-	if (typeof opts=="function") {
-		cb=opts;
-		opts={};
+	var main=function(){
+		if (typeof Window!=="undefined" && this===Window) {
+			throw "should add new before calling Create";
+			return;
+		}
+		if (typeof opts=="function") {
+			cb=opts;
+			opts={};
+		}
+		var that=this;
+		
+
+		var kfs=new Kfs(path,opts,function(err){
+			if (err) {
+				setTimeout(function(){
+					cb(err,0);
+				},0);
+				return null;
+			} else {
+				that.size=this.size;
+				that.fs=this;
+				setupapi.call(that);		
+			}
+		});
 	}
 
+	var CACHE=null;
+	var KEY={};
+	var ADDRESS={};
 	
 	var loadVInt =function(opts,blocksize,count,cb) {
 		//if (count==0) return [];
@@ -80,14 +104,14 @@ var Create=function(path,opts,cb) {
 		this.fs.readBuf_packedint(opts.cur,blocksize,count,true,function(o){
 			//console.log("vint");
 			opts.cur+=o.adv;
-			cb.apply(that,[o.data]);
+			cb.call(that,o.data,opts.key);
 		});
 	}
 	var loadVInt1=function(opts,cb) {
 		var that=this;
 		loadVInt.apply(this,[opts,6,1,function(data){
 			//console.log("vint1");
-			cb.apply(that,[data[0]]);
+			cb.call(that,data[0],opts.key);
 		}])
 	}
 	//for postings
@@ -96,7 +120,7 @@ var Create=function(path,opts,cb) {
 		this.fs.readBuf_packedint(opts.cur,blocksize,count,false,function(o){
 			//console.log("pint");
 			opts.cur+=o.adv;
-			cb.apply(that,[o.data]);
+			cb.call(that,o.data,opts.key);
 		});
 	}
 	// item can be any type (variable length)
@@ -166,7 +190,7 @@ var Create=function(path,opts,cb) {
 					});
 				}
 
-				if (opts.lazy) cb.apply(that,[o]);
+				if (opts.lazy) cb.call(that,o,opts.key);
 				else {
 					taskqueue.shift()({__empty:true});
 				}
@@ -224,10 +248,10 @@ var Create=function(path,opts,cb) {
 					taskqueue.push(function(data){
 						o[keys[keys.length-1]]=data;
 						opts.cur=endcur;
-						cb.apply(that,[o]);
+						cb.apply(that,[o,opts.key]);
 					});
 				}
-				if (opts.lazy) cb.apply(that,[o]);
+				if (opts.lazy) cb.apply(that,[o],opts.key);
 				else {
 					taskqueue.shift()({__empty:true});
 				}
@@ -240,7 +264,7 @@ var Create=function(path,opts,cb) {
 		var that=this;
 		this.fs.readStringArray(opts.cur,blocksize,encoding,function(o){
 			opts.cur+=blocksize;
-			cb.apply(that,[o]);
+			cb.apply(that,[o],opts.key);
 		});
 	}
 	var loadIntegerArray=function(opts,blocksize,unitsize,cb) {
@@ -248,7 +272,7 @@ var Create=function(path,opts,cb) {
 		loadVInt1.apply(this,[opts,function(count){
 			var o=that.fs.readFixedArray(opts.cur,count,unitsize,function(o){
 				opts.cur+=count*unitsize;
-				cb.apply(that,[o]);
+				cb.apply(that,[o],opts.key);
 			});
 		}]);
 	}
@@ -323,9 +347,6 @@ var Create=function(path,opts,cb) {
 		});
 		return this;
 	}
-	var CACHE=null;
-	var KEY={};
-	var ADDRESS={};
 	var reset=function(cb) {
 		if (!CACHE) {
 			load.apply(this,[{cur:0,lazy:true},function(data){
@@ -403,9 +424,10 @@ var Create=function(path,opts,cb) {
 			for (var i=0;i<path.length;i++) {
 				var task=(function(key,k){
 
-					return (function(data){
+					return (function(data,loadkey){
 						if (!(typeof data=='object' && data.__empty)) {
 							if (typeof o[lastkey]=='string' && o[lastkey][0]==strsep) o[lastkey]={};
+							
 							o[lastkey]=data; 
 							o=o[lastkey];
 							r=data[key];
@@ -426,6 +448,7 @@ var Create=function(path,opts,cb) {
 								var cur=p[0],sz=p[1];
 								newopts.lazy=!opts.recursive || (k<path.length-1) ;
 								newopts.blocksize=sz;newopts.cur=cur,newopts.keys=[];
+								newopts.key=key;
 								lastkey=key; //load is sync in android
 								if (opts.address && taskqueue.length==1) {
 									ADDRESS[pathnow]=[cur,sz];
@@ -437,7 +460,7 @@ var Create=function(path,opts,cb) {
 								if (opts.address && taskqueue.length==1) {
 									taskqueue.shift()(null,ADDRESS[pathnow]);
 								} else {
-									taskqueue.shift().apply(that,[r]);
+									taskqueue.shift().call(that,r,key);
 								}
 							}
 						}
@@ -508,20 +531,7 @@ var Create=function(path,opts,cb) {
 			},0);
 		}
 	}
-	var that=this;
-	var kfs=new Kfs(path,opts,function(err){
-		if (err) {
-			setTimeout(function(){
-				cb(err,0);
-			},0);
-			return null;
-		} else {
-			that.size=this.size;
-			setupapi.call(that);			
-		}
-	});
-	this.fs=kfs;
-	return this;
+	return main.call(this);
 }
 
 Create.datatypes=DT;
