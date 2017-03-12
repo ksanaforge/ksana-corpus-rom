@@ -10,10 +10,15 @@ var getFileSize=function(fn,cb) {
 	reader.readAsDataURL(fn);
 }
 var xhr_getFileSize=function(url,cb){
-  var http = new XMLHttpRequest();
-  http.open('HEAD', url+"?"+(new Date().getTime()) ,true);
-  http.onload=function(e){
-		var length=parseInt(http.getResponseHeader("Content-Length"));
+  var xhr = new XMLHttpRequest();
+  const timestamp=(url.indexOf("http")==0)?"?"+(new Date().getTime()):"";
+  xhr.open('HEAD', url+timestamp ,true);
+
+  xhr.onload =function(e){ //onload will load entire file
+		var length=parseInt(xhr.getResponseHeader("Content-Length"));
+		if (isNaN(length)) {
+			length=e.total;
+		}
 		setTimeout(function(){
 			if (this.status>200) {
 	 			cb(1,"invalid url");
@@ -22,7 +27,7 @@ var xhr_getFileSize=function(url,cb){
 			}
 		}.bind(this),0);
   }
-  http.send();
+  xhr.send();
 }
 
 
@@ -78,7 +83,7 @@ var open=function(fn_url,cb) {
 		_openBlobURL.call(this,fn_url,cb);
 		return;
 	}
-	if (fn_url.indexOf("http")==0){//
+	if (fn_url.indexOf("http")==0||fn_url.indexOf("chrome-extension:")==0){//
 		_openXHR.call(this,fn_url,cb);
 		return;
 	}

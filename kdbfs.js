@@ -60,16 +60,22 @@ var Open=function(path,opts,cb) {
 		if (html5fs) {
 			if (opts.webStorage){
 				//local storage
-			} else if (window && window.location.protocol.indexOf("http")>-1) {
+			} else if (window ) {
 				var slash=window.location.href.lastIndexOf("/");
 				var approot=window.location.href.substr(0,slash+1);
-				if (typeof path=="string" &&path.substr(0,5)!=="blob:"){
-					if (path.indexOf("/")>-1){
-						approot=window.location.origin+"/";
-					}
-					if (path.indexOf("http")==-1) path=approot+path;						
+
+				if (window.location.protocol.indexOf("http")==0) {
+					if (typeof path=="string" &&path.substr(0,5)!=="blob:" ){
+						if (path.indexOf("/")>-1){
+							approot=window.location.origin+"/";
+						}
+						if (path.indexOf("http")==-1) path=approot+path;						
+					}					
+				} else if (window.location.protocol.indexOf("chrome-extension:")==0) {
+					if (path.indexOf("chrome-extension:")==-1);
+					path=approot+path;
 				}
-			}
+			} 
 			fs.open(path,function(h){
 				if (!h) {
 					cb("file not found:"+path);	
