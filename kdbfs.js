@@ -118,13 +118,15 @@ var Open=function(path,opts,cb) {
 			var fn=path;
 			if (this.handle.file) {
 				//local file open by html5 input file
-				fs.getFileSize(this.handle.file,function(size){
-					this.size=size;
-					this.read=fs.xhr_read;
-					if (cb) setTimeout(function(){
+				this.size=this.handle.file.size;
+				this.read=fs.xhr_read;
+
+				//fs.getFileSize(this.handle.file,function(size){
+				//	this.size=size;
+				//	if (cb) setTimeout(function(){
 						cb.call(this);
-					}.bind(this),0);
-				}.bind(this))
+				//	}.bind(this),0);
+				//}.bind(this))
 			} else if (this.handle.blobsize) {
 				this.read=fs.xhr_read;
 				this.size=this.handle.blobsize

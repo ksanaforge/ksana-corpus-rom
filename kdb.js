@@ -67,6 +67,13 @@ var strsep="\uffff";
 var Create=function(path,opts,cb) {
 	/* loadxxx functions move file pointer */
 	// load variable length int
+
+	const isLocal=function(kfs){
+		const localhost=kfs.handle&&kfs.handle.url&&
+			kfs.handle.url.indexOf('http://127.0.0.1')==0;
+		const inputfile=kfs.handle&&kfs.handle.file;
+		return !!(localhost||inputfile);
+	}
 	var main=function(){
 		if (typeof Window!=="undefined" && this===Window) {
 			throw "should add new before calling Create";
@@ -78,7 +85,7 @@ var Create=function(path,opts,cb) {
 		}
 		var that=this;
 		
-		var kfs=new Kfs(path,opts,function(err){
+		new Kfs(path,opts,function(err){
 			if (err) {
 				setTimeout(function(){
 					cb(err,0);
@@ -87,6 +94,7 @@ var Create=function(path,opts,cb) {
 			} else {
 				that.size=this.size;
 				that.fs=this;
+				that.local=isLocal(this);
 				setupapi.call(that);		
 			}
 		});
@@ -175,7 +183,10 @@ var Create=function(path,opts,cb) {
 											 //not pushing the first call
 										}	else o.push(data);
 										opts.blocksize=sz;
-										load.apply(that,[opts, taskqueue.shift()]);
+										//prevent deep calling stack
+										setTimeout(function(){
+											load.apply(that,[opts, taskqueue.shift()]);
+										},0);
 									}
 								);
 							})(L.sz[i])
@@ -236,7 +247,9 @@ var Create=function(path,opts,cb) {
 										}
 										opts.blocksize=sz;
 										if (verbose) readLog("key",key);
-										load.apply(that,[opts, taskqueue.shift()]);
+										setTimeout(function(){
+											load.apply(that,[opts, taskqueue.shift()]);
+										},0);
 									}
 								);
 							})(L.sz[i],keys[i-1])
