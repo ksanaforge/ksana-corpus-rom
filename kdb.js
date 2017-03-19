@@ -12,7 +12,6 @@
   add err in callback for node.js compliant
 */
 var Kfs=null;
-
 if (typeof ksanagap=="undefined") {
 	try {
 		var react_native=require("react-native");
@@ -95,6 +94,9 @@ var Create=function(path,opts,cb) {
 				that.size=this.size;
 				that.fs=this;
 				that.local=isLocal(this);
+				if (that.fs) {
+					that.url=that.fs.handle.url;
+				}
 				setupapi.call(that);		
 			}
 		});

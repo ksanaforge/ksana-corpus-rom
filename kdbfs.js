@@ -299,7 +299,7 @@ var Open=function(path,opts,cb) {
 			if (html5fs){
 				//v=(new Uint32Array(buffer))[0];
 				var v=new DataView(buffer).getUint32(0, false)
-				readLog("ui32",v);
+				readLog("ui32",v+" at"+pos);
 				cb(v);
 			}
 			else cb.apply(that,[buffer.readInt32BE(0)]);	
@@ -409,7 +409,7 @@ var Open=function(path,opts,cb) {
 
 	var free=function() {
 		//console.log('closing ',handle);
-		fs.closeSync(this.handle);
+		fs.closeSync&&fs.closeSync(this.handle);
 	}
 
 	return main();
