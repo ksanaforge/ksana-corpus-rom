@@ -185,10 +185,7 @@ var Create=function(path,opts,cb) {
 											 //not pushing the first call
 										}	else o.push(data);
 										opts.blocksize=sz;
-										//prevent deep calling stack
-										setTimeout(function(){
-											load.apply(that,[opts, taskqueue.shift()]);
-										},0);
+										load.apply(that,[opts, taskqueue.shift()]);
 									}
 								);
 							})(L.sz[i])
@@ -249,7 +246,7 @@ var Create=function(path,opts,cb) {
 										}
 										opts.blocksize=sz;
 										if (verbose) readLog("key",key);
-										setTimeout(function(){
+										setTimeout(function(){ //will slow down a bit , but prevent deep nested call.
 											load.apply(that,[opts, taskqueue.shift()]);
 										},0);
 									}
