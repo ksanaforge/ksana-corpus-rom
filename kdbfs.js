@@ -6,8 +6,9 @@ const html5mode=function(){
 	html5fs=true; 	
 }
 try {
-	fs=require("fs");
-	Buffer=require("buffer").Buffer;
+	const fs_="fs",buffer_="buffer";//cheat react native packager
+	fs=require(fs_);
+	Buffer=require(buffer_).Buffer;
 } catch (e) {
 	html5mode();
 }

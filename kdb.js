@@ -12,30 +12,18 @@
   add err in callback for node.js compliant
 */
 var Kfs=null;
-if (typeof ksanagap=="undefined") {
-	try {
-		var react_native=require("react-native");
-		var OS=react_native.Platform.OS;
-		if (OS=='android') {
-			Kfs=require("./kdbfs_rn_android");
-		} else {
-			Kfs=require("./kdbfs_ios");
-		}
-	} catch(e) {
-		Kfs=require('./kdbfs');	
-	}			
-} else {
-	if (ksanagap.platform=="ios") {
-		Kfs=require("./kdbfs_ios");
-	} else if (ksanagap.platform=="node-webkit") {
-		Kfs=require("./kdbfs");
-	} else if (ksanagap.platform=="chrome") {
-		Kfs=require("./kdbfs");
+
+try {
+	var react_native=require("react-native");
+	var OS=react_native.Platform.OS;
+	if (OS=='android') {
+		Kfs=require("./kdbfs_rn_android");
 	} else {
-		Kfs=require("./kdbfs_android");
+		Kfs=require("./kdbfs_ios");
 	}
-		
-}
+} catch(e) {
+	Kfs=require('./kdbfs');	
+}			
 
 
 var DT={
